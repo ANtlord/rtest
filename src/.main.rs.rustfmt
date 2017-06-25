@@ -1,0 +1,98 @@
+mod points;
+use std::thread;
+use std::ops::Deref;
+use points::*;
+use std::sync::mpsc::channel;
+
+struct Angle {
+    v1: Point3D,
+    v2: Point3D,
+}
+
+trait HasCount : HasLen {
+    fn count(&self) -> f32 {
+        1.
+    }
+}
+
+impl HasCount for Angle {
+    fn count(&self) -> f32 {
+        2.
+    }       
+}
+
+impl<T> HasLen for T where T: HasCount {
+    fn len(&self) -> f32 {
+        self.count()
+    }
+}
+
+fn gen<T: HasLen>(obj: &T) {
+    println!("{}", obj.len());
+}
+
+fn modify(point: &mut Point3D) {
+    point.x = 111.
+}
+
+struct Counter {
+    val: u32,
+}
+
+impl Iterator for Counter {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.val += 1;
+        if self.val < 6 {
+            Some(self.val)
+        } else {
+            None
+        }
+    }
+}
+
+impl Deref for Counter {
+    type Target = u32;
+    fn deref(&self) -> &u32 {
+        &self.val
+    }
+}
+
+fn asd(c: &mut Counter) {
+    c.val += 1;
+}
+
+fn main() {
+    let mut c = Box::new(Counter{val: 0});
+    let mut q: u32 = c.by_ref().take(4).sum();
+    let (tx, rx) = channel();
+    println!("q is {}", q);
+    let h = thread::spawn(move || {
+        q+=1;
+        tx.send(q).unwrap();
+    });
+    q = rx.recv().unwrap();
+    println!("q is {}", q);
+    h.join();
+    let qwe = &c as &u32;
+    println!("{}", qwe);
+    // qwe(&c);
+
+    let p: Point = Point::Point2D{x: 123., y: 2.};
+    println!("{}", p.len());
+
+    let mut p3 = Point3D::new();
+    println!("{}", p3.len());
+    modify(&mut p3);
+    p3.x = 3.;
+
+    gen(&p3);
+    gen(&p);
+    println!("{}", p3.x);
+
+    let a = Angle{v1: Point3D::new(), v2: Point3D::new()};
+    gen(&a);
+
+    // check(Point3D{x: 1., y: 2., z: 3.});
+}
