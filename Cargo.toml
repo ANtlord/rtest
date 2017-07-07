@@ -7,3 +7,4 @@ authors = ["lantlord <antlord92@gmail.com>"]
 getopts = "0.2"
 imap = "0.3.2"
 openssl = "0.9.14"
+iconv = { git = 'https://github.com/y-stm/rust-iconv' }

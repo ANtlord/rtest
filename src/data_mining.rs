@@ -1,63 +1,67 @@
-use std::thread;
-use std::sync::mpsc::TryRecvError;
-use std::io::{stdout, Write};
-
-use std::sync::mpsc;
-use std::time::Duration;
-
 use imap::client::Client;
-use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use std::net::TcpStream;
+use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream};
+use auth::Auth;
+use iconv::Iconv;
 
-pub fn get_folder_content(login: String, password: String) {
-    let (tx, rx) = mpsc::channel();
-    indicate_loading(rx);
+pub struct ImapClient {
+    imap_socket: Client<SslStream<TcpStream>>,
+}
 
-    let h = thread::spawn(move || {
-        let host = "imap.gmail.com";
-        let mut imap_socket = Client::secure_connect(
-            (host, 993), host,
+impl ImapClient {
+    pub fn new(options: &Auth) -> Self {
+        let imap_socket = Client::secure_connect(
+            (options.host.as_str(), options.port), options.host.as_str(),
             SslConnectorBuilder::new(SslMethod::tls()).unwrap().build()
         ).unwrap();
-
-        let folders = imap_socket.list("\"\"", "*").expect("cannot get folders");
-
-        imap_socket.login(&login, &password).expect("cannot login");
-        let mb = imap_socket.select("INBOX").unwrap();
-
-        imap_socket.logout().unwrap();
-        tx.send(true).unwrap();
-        thread::sleep(Duration::from_millis(500));
-        println!("\n{}", mb);
-        println!("Folders:");
-        for item in folders {
-            println!("{}", item);
-        }
-    });
-    h.join().unwrap();
-}
-
-fn draw_loading(mut count: u8) -> u8 {
-    thread::sleep(Duration::from_millis(500));
-    if count % 3 == 0 {
-        print!("\r   \r");
-        count = 0;
+        Self { imap_socket: imap_socket }
     }
-    print!(".");
-    stdout().flush().unwrap();
-    count + 1
+
+    pub fn login(&mut self, options: &Auth) {
+        self.imap_socket.login(&options.user, &options.pass).expect("cannot login");
+    }
+
+    pub fn get_folders(&mut self) -> Vec<Folder> {
+        let folder_data = self.imap_socket.list("\"\"", "*").expect("cannot get folders");
+        let folders = folder_data.into_iter().map(|x| Folder::new(&x)).collect();
+        folders
+    }
+
+    pub fn get_folder_content(&mut self, folder: &Folder) -> Vec<String> {
+        self.imap_socket.list(&folder.raw_name, "*").expect("cannot get folder")
+    }
+
+    pub fn logout(&mut self) {
+        self.imap_socket.logout().unwrap();
+    }
 }
 
-fn indicate_loading(rx: mpsc::Receiver<bool>) {
-    thread::spawn(move || {
-        let mut count = 0;
-        let mut is_done = false;
-        while !is_done {
-            count = draw_loading(count);
-            match rx.try_recv() {
-                 Ok(t)  => { is_done = t },
-                 Err(TryRecvError::Disconnected) => { is_done = true },
-                 Err(TryRecvError::Empty) => {}
-            }
-        }
-    });
+pub struct Folder {
+    pub name: String,
+    raw_name: String,
+    other: String,
 }
+
+impl Folder {
+    pub fn new(raw_string: &str) -> Self {
+        let mut iconv = Iconv::new("UTF-8", "UTF-7").unwrap();
+
+        let folder_from = raw_string.rfind(' ').unwrap();
+        let raw_name = String::from(raw_string[folder_from .. raw_string.len()].trim());
+        let folder: String = raw_name.as_str().replace("&", "+").replace(",", "/");
+        
+        let mut buf = Vec::new();
+        iconv.convert(folder.trim().as_bytes(), &mut buf, 0).unwrap();
+        Self {
+            name: String::from_utf8(buf).unwrap(),
+            raw_name: raw_name,
+            other: (&raw_string[0 .. folder_from]).to_owned()
+        }
+    }
+}
+
+pub enum Action {
+    List,
+    None
+}
+
