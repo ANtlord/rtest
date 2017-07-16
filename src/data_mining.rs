@@ -1,8 +1,10 @@
 use imap::client::Client;
+use imap::mailbox::Mailbox;
 use std::net::TcpStream;
 use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream};
 use auth::Auth;
 use iconv::Iconv;
+// use std::iter::Iterator::
 
 pub struct ImapClient {
     imap_socket: Client<SslStream<TcpStream>>,
@@ -27,12 +29,51 @@ impl ImapClient {
         folders
     }
 
-    pub fn get_folder_content(&mut self, folder: &Folder) -> Vec<String> {
-        self.imap_socket.list(&folder.raw_name, "*").expect("cannot get folder")
+    pub fn select(&mut self, folder: &Folder) -> Mailbox {
+        let mailbox = self.imap_socket.select(&folder.raw_name).expect("cannot select folder");
+        mailbox
     }
+
+    pub fn folder_status(&mut self, folder: &Folder, items: &Vec<StatusItem>) -> Vec<String> {
+        let item_str = format!("({})", items.iter().fold(String::new(), |x, ref y| x + &y.to_string()));
+        let status = self.imap_socket.status(&folder.raw_name, &item_str).expect("cannot get status");
+        status
+    }
+
+    pub fn get_folder_content(&mut self, folder: &Folder) -> Vec<String> {
+        // self.imap_socket.list(&folder.raw_name, "*").expect("cannot get folder")
+        match self.imap_socket.fetch("1:*", "(FLAGS)") {
+            Ok(res) => res,
+            Err(e) => { panic!("{}", e) }
+        }
+    }
+
+    // pub fn exap(&mut self) {
+        // self.imap_socket.
+    // }
 
     pub fn logout(&mut self) {
         self.imap_socket.logout().unwrap();
+    }
+}
+
+pub enum StatusItem {
+    Messages,
+    Recent,
+    Uidnext,
+    Uidvalidity,
+    Unseen,
+}
+
+impl StatusItem {
+    fn to_string(&self) -> String {
+        match self {
+            Messages => "MESSAGES".to_owned(),
+            Recent => "RECENT".to_owned(),
+            Uidnext => "UIDNEXT".to_owned(),
+            Uidvalidity => "UIDVALIDITY".to_owned(),
+            Unseen => "UNSEEN".to_owned(),
+        }
     }
 }
 
@@ -59,9 +100,3 @@ impl Folder {
         }
     }
 }
-
-pub enum Action {
-    List,
-    None
-}
-
