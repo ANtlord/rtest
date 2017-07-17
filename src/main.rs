@@ -6,7 +6,6 @@ extern crate iconv;
 mod auth;
 mod data_mining;
 
-use std::num::ParseIntError;
 use std::fs::{remove_file};
 use std::env;
 
@@ -16,56 +15,7 @@ use getopts::Matches;
 use data_mining::{ImapClient, StatusItem};
 use auth::Auth;
 
-enum LibErr {
-    AuthFail,
-    ConnectFail,
-    YetAnotherErr,
-}
-
-enum AppErr {
-    Base(LibErr),
-    // AuthFail(AuthFail),
-    // ConnectFail(ConnectFail),
-    ANother,
-}
-
-impl From<LibErr> for AppErr {
-    fn from(err: LibErr) -> Self {
-        AppErr::Base(err)
-    }
-}
-
-fn throwable_wrapper(state: u8) -> Result<u8, AppErr> {
-    let val = throwable_fn(state)? + 1;
-    if val > 6 {
-        Err(AppErr::ANother)
-    } else {
-        Ok(val)
-    }
-}
-
-fn throwable_fn(state: u8) -> Result<u8, LibErr> {
-    if state < 2 {
-        Ok(1)
-    } else if state == 1 {
-        Err(LibErr::AuthFail)
-    } else {
-        Err(LibErr::ConnectFail)
-    }
-}
-
 fn main() {
-    let res = match throwable_wrapper(1) {
-        Ok(x) => { x },
-        Err(AppErr::Base(liberr)) => match liberr {
-            LibErr::AuthFail => { panic!("liberr authfail") },
-            _ => { panic!("qwe asd") },
-            // LibErr::ConnectFail => { panic!("liberr connectfail") },
-        },
-        Err(AppErr::ANother) => { panic!("apperr ron") },
-    };
-    // println!("{}", res);
-
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
     opts.optflag("r", "erase", "erase auth file");
@@ -111,7 +61,6 @@ fn main() {
     // for item in folder_content {
         // println!("{}", item);
     // }
-
     let status = client.folder_status(folder, &vec![StatusItem::Messages]);
     println!("");
     for item in &status {

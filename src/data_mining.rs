@@ -4,7 +4,6 @@ use std::net::TcpStream;
 use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream};
 use auth::Auth;
 use iconv::Iconv;
-// use std::iter::Iterator::
 
 pub struct ImapClient {
     imap_socket: Client<SslStream<TcpStream>>,
@@ -41,22 +40,18 @@ impl ImapClient {
     }
 
     pub fn get_folder_content(&mut self, folder: &Folder) -> Vec<String> {
-        // self.imap_socket.list(&folder.raw_name, "*").expect("cannot get folder")
         match self.imap_socket.fetch("1:*", "(FLAGS)") {
             Ok(res) => res,
             Err(e) => { panic!("{}", e) }
         }
     }
 
-    // pub fn exap(&mut self) {
-        // self.imap_socket.
-    // }
-
     pub fn logout(&mut self) {
         self.imap_socket.logout().unwrap();
     }
 }
 
+#[allow(dead_code)]
 pub enum StatusItem {
     Messages,
     Recent,
@@ -67,12 +62,13 @@ pub enum StatusItem {
 
 impl StatusItem {
     fn to_string(&self) -> String {
+        use StatusItem::*;
         match self {
-            Messages => "MESSAGES".to_owned(),
-            Recent => "RECENT".to_owned(),
-            Uidnext => "UIDNEXT".to_owned(),
-            Uidvalidity => "UIDVALIDITY".to_owned(),
-            Unseen => "UNSEEN".to_owned(),
+            &Messages => "MESSAGES".to_owned(),
+            &Recent => "RECENT".to_owned(),
+            &Uidnext => "UIDNEXT".to_owned(),
+            &Uidvalidity => "UIDVALIDITY".to_owned(),
+            &Unseen => "UNSEEN".to_owned(),
         }
     }
 }
