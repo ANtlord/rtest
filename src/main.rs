@@ -2,9 +2,15 @@ extern crate imap;
 extern crate openssl;
 extern crate getopts;
 extern crate iconv;
+#[macro_use(bson, doc)]
+extern crate bson;
+extern crate serde;
 
 mod auth;
 mod data_mining;
+mod io;
+
+use io::save;
 
 use std::fs::{remove_file};
 use std::env;
@@ -46,8 +52,9 @@ fn main() {
     }
 
     let folder = &folders[5];
-    let mailbox = client.select(&folder);
+    let mailbox = client.exam(&folder);
     println!("{} has {} messages", folder.name, mailbox);
+    save(&mailbox);
     // TODO: how to notify about new messages.
     // 1. Select folder;
     // 2. Save a sequence number of unseen message;

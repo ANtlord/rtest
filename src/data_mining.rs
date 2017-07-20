@@ -4,6 +4,7 @@ use std::net::TcpStream;
 use openssl::ssl::{SslConnectorBuilder, SslMethod, SslStream};
 use auth::Auth;
 use iconv::Iconv;
+use std::ops::Deref;
 
 pub struct ImapClient {
     imap_socket: Client<SslStream<TcpStream>>,
@@ -26,6 +27,10 @@ impl ImapClient {
         let folder_data = self.imap_socket.list("\"\"", "*").expect("cannot get folders");
         let folders = folder_data.into_iter().map(|x| Folder::new(&x)).collect();
         folders
+    }
+
+    pub fn exam(&mut self, folder: &Folder) -> Mailbox {
+        self.imap_socket.examine(&folder.raw_name).expect("cannot select folder")
     }
 
     pub fn select(&mut self, folder: &Folder) -> Mailbox {
