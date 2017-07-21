@@ -6,9 +6,11 @@ extern crate iconv;
 extern crate bson;
 extern crate serde;
 
-mod auth;
 mod data_mining;
 mod io;
+mod app;
+mod auth;
+
 
 use io::save;
 
@@ -42,10 +44,10 @@ fn main() {
         remove_file(filename).unwrap_or(())
     }
 
-    let auth_obj = Auth::new(filename);
+    let auth = Auth::new(filename);
     
-    let mut client = ImapClient::new(&auth_obj);
-    client.login(&auth_obj);
+    let mut client = ImapClient::new(&auth);
+    client.login(&auth);
     let folders = client.get_folders();
     for item in &folders {
         println!("{}", item.name);

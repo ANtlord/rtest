@@ -1,8 +1,9 @@
 use std::io::Write;
 use std::str::FromStr;
-use imap::mailbox::Mailbox;
 use std::fs::File;
 use std::fs::OpenOptions;
+
+use imap::mailbox::Mailbox;
 use bson::{encode_document, Document};
 
 fn serialize(mailbox: &Mailbox) -> Document {

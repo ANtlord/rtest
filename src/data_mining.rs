@@ -23,28 +23,28 @@ impl ImapClient {
         self.imap_socket.login(&options.user, &options.pass).expect("cannot login");
     }
 
-    pub fn get_folders(&mut self) -> Vec<Folder> {
+    pub fn get_folders(&mut self) -> Vec<FolderData> {
         let folder_data = self.imap_socket.list("\"\"", "*").expect("cannot get folders");
-        let folders = folder_data.into_iter().map(|x| Folder::new(&x)).collect();
+        let folders = folder_data.into_iter().map(|x| FolderData::new(&x)).collect();
         folders
     }
 
-    pub fn exam(&mut self, folder: &Folder) -> Mailbox {
+    pub fn exam(&mut self, folder: &FolderData) -> Mailbox {
         self.imap_socket.examine(&folder.raw_name).expect("cannot select folder")
     }
 
-    pub fn select(&mut self, folder: &Folder) -> Mailbox {
+    pub fn select(&mut self, folder: &FolderData) -> Mailbox {
         let mailbox = self.imap_socket.select(&folder.raw_name).expect("cannot select folder");
         mailbox
     }
 
-    pub fn folder_status(&mut self, folder: &Folder, items: &Vec<StatusItem>) -> Vec<String> {
+    pub fn folder_status(&mut self, folder: &FolderData, items: &Vec<StatusItem>) -> Vec<String> {
         let item_str = format!("({})", items.iter().fold(String::new(), |x, ref y| x + &y.to_string()));
         let status = self.imap_socket.status(&folder.raw_name, &item_str).expect("cannot get status");
         status
     }
 
-    pub fn get_folder_content(&mut self, folder: &Folder) -> Vec<String> {
+    pub fn get_folder_content(&mut self, folder: &FolderData) -> Vec<String> {
         match self.imap_socket.fetch("1:*", "(FLAGS)") {
             Ok(res) => res,
             Err(e) => { panic!("{}", e) }
@@ -78,13 +78,13 @@ impl StatusItem {
     }
 }
 
-pub struct Folder {
+pub struct FolderData {
     pub name: String,
     raw_name: String,
     other: String,
 }
 
-impl Folder {
+impl FolderData {
     pub fn new(raw_string: &str) -> Self {
         let mut iconv = Iconv::new("UTF-8", "UTF-7").unwrap();
 
