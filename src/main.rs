@@ -8,11 +8,13 @@ extern crate serde;
 
 mod data_mining;
 mod io;
-mod app;
+mod account;
 mod auth;
 
-
+use std::thread::{sleep, spawn, /*JoinHandle*/};
+use std::cell::RefCell;
 use io::save;
+use std::sync::Arc;
 
 use std::fs::{remove_file};
 use std::env;
@@ -22,6 +24,7 @@ use getopts::Matches;
 
 use data_mining::{ImapClient, StatusItem};
 use auth::Auth;
+use account::Account;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -45,36 +48,36 @@ fn main() {
     }
 
     let auth = Auth::new(filename);
+
+    let acc = Account::new(auth);
+    acc.listen();
+    // let a = Arc::new(RefCell::new("qwe".to_owned()));
+    // let q = a.clone();
+    // (*q).borrow_mut().push('q');
+    // println!("{}", (*a.borrow()));
+    // let h = spawn(move || {
+        // Arc::get_mut(&mut q).unwrap().push('q');
+        // println!("{}", q);
+    // });
+    // h.join();
+    // print!("{}", a);
+
     
-    let mut client = ImapClient::new(&auth);
-    client.login(&auth);
-    let folders = client.get_folders();
-    for item in &folders {
-        println!("{}", item.name);
-    }
-
-    let folder = &folders[5];
-    let mailbox = client.exam(&folder);
-    println!("{} has {} messages", folder.name, mailbox);
-    save(&mailbox);
-    // TODO: how to notify about new messages.
-    // 1. Select folder;
-    // 2. Save a sequence number of unseen message;
-    // 3. Get a status of the folder with argument UNSEEN;
-    // 4. Save sum of unseen messages;
-    // 5. Get new sequence number and new sum.
-    // 6. Check that the sequence number is higher than saved sequence number. If new number is
-    //    higher then it means you get new messages. How many new messgas you get is number of
-    //    unseen messages from select command.
-    // let folder_content = client.get_folder_content(&folder);
-    // for item in folder_content {
-        // println!("{}", item);
+    // let mut client = ImapClient::new(&auth);
+    // client.login(&auth);
+    // let folders = client.get_folders();
+    // for item in &folders {
+        // println!("{}", item.name);
     // }
-    let status = client.folder_status(folder, &vec![StatusItem::Messages]);
-    println!("");
-    for item in &status {
-        println!("{}", item);
-    }
 
-    client.logout();
+    // let folder = &folders[5];
+    // let mailbox = client.exam(&folder);
+    // println!("{} has {} messages", folder.name, mailbox);
+    // save(&mailbox);
+    // let status = client.folder_status(folder, &vec![StatusItem::Messages, StatusItem::Recent, StatusItem::Unseen]);
+    // println!("");
+    // for item in &status {
+        // print!("{}", item);
+    // }
+    // client.logout();
 }

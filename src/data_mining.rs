@@ -1,3 +1,4 @@
+use imap::error::Error;
 use imap::client::Client;
 use imap::mailbox::Mailbox;
 use std::net::TcpStream;
@@ -29,8 +30,20 @@ impl ImapClient {
         folders
     }
 
-    pub fn exam(&mut self, folder: &FolderData) -> Mailbox {
-        self.imap_socket.examine(&folder.raw_name).expect("cannot select folder")
+    pub fn exam(&mut self, folder: &FolderData) -> Option<Mailbox> {
+        match self.imap_socket.examine(&folder.raw_name) {
+            Ok(mb) => { return Some(mb) },
+            Err(e) => match e {
+                Error::NoResponse(str_vec) => {
+                    println!("{}", str_vec.join(" "));
+                    return None;
+                }
+                _ => { panic!("unknown error."); }
+            }
+        };
+        // self.imap_socket.examine(&folder.raw_name).expect(
+            // &format!("cannot select folder {} {}", &folder.name, &folder.raw_name)
+        // )
     }
 
     pub fn select(&mut self, folder: &FolderData) -> Mailbox {
@@ -39,7 +52,9 @@ impl ImapClient {
     }
 
     pub fn folder_status(&mut self, folder: &FolderData, items: &Vec<StatusItem>) -> Vec<String> {
-        let item_str = format!("({})", items.iter().fold(String::new(), |x, ref y| x + &y.to_string()));
+        let arguments: Vec<String> = items.iter().map(|x| x.to_string()).collect();
+        let item_str = format!("({})", arguments.join(" "));
+        print!("{}", item_str);
         let status = self.imap_socket.status(&folder.raw_name, &item_str).expect("cannot get status");
         status
     }
