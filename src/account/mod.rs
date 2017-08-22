@@ -1,5 +1,6 @@
 pub mod folder;
 
+use chrono::prelude::{Utc, Timelike};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use imap::mailbox::Mailbox;
@@ -27,6 +28,11 @@ struct AccountInner {
 /// Compares number of all messages, number of recent messages, sequence number of the first unseen
 /// message in mailbox.
 fn is_equal(mb1: &Mailbox, mb2: &Mailbox) -> bool {
+    let time = Utc::now();
+    let minutes = time.minute();
+    let seconds = time.second();
+    println!("mb1 {}, {}, {} {}:{}", mb1.unseen.unwrap(), mb1.exists, mb1.recent, minutes, seconds);
+    println!("mb2 {}, {}, {} {}:{}", mb2.unseen.unwrap(), mb2.exists, mb2.recent, minutes, seconds);
     mb1.unseen == mb2.unseen && mb1.exists == mb2.exists && mb1.recent == mb2.recent
 }
 
@@ -97,8 +103,17 @@ impl AccountInner {
     fn update_status(&mut self) {
         let mut folder = self.folders.get_mut("INBOX").unwrap();
         let status_items = vec![StatusItem::Messages, StatusItem::Recent, StatusItem::Unseen];
-        let status = self.client.folder_status(&folder.data, &status_items);
-        let vals: Vec<u64> = status.iter().map(parse_status_item_data).collect();
+        let status_message = self.client.folder_status(&folder.data, &status_items);
+        let status_data: Vec<&str> = status_message[0].split(" ").collect();
+        let mut vals = vec![];
+        let len = status_data.len();
+        for i in 3..len {
+            if i % 2 == 1 {
+                continue;
+            }
+            let val = str::replace(status_data[i].trim(), ")", "").parse::<u64>().unwrap();
+            vals.push(val);
+        }
         folder.status.update(vals[0], vals[1], vals[2]);
     }
 
@@ -107,6 +122,7 @@ impl AccountInner {
         if !self.is_new_messages_exist() {
             return result;
         }
+        println!("I've got a message!");
         self.update_status();
         return result;
     }
@@ -114,6 +130,16 @@ impl AccountInner {
 
 fn parse_status_item_data(data: &String) -> u64 {
     let status_item_data = data.split(" ").collect::<Vec<&str>>();
+    println!("{:?}", status_item_data);
     let status_item_value = status_item_data[1].trim().parse::<u64>().unwrap();
     status_item_value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_check_new_messages() {
+    }
 }

@@ -54,7 +54,6 @@ impl ImapClient {
     pub fn folder_status(&mut self, folder: &FolderData, items: &Vec<StatusItem>) -> Vec<String> {
         let arguments: Vec<String> = items.iter().map(|x| x.to_string()).collect();
         let item_str = format!("({})", arguments.join(" "));
-        print!("{}", item_str);
         let status = self.imap_socket.status(&folder.raw_name, &item_str).expect("cannot get status");
         status
     }

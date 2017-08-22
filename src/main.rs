@@ -5,16 +5,12 @@ extern crate iconv;
 #[macro_use(bson, doc)]
 extern crate bson;
 extern crate serde;
+extern crate chrono;
 
 mod data_mining;
 mod io;
 mod account;
 mod auth;
-
-use std::thread::{sleep, spawn, /*JoinHandle*/};
-use std::cell::RefCell;
-use io::save;
-use std::sync::Arc;
 
 use std::fs::{remove_file};
 use std::env;
@@ -51,33 +47,4 @@ fn main() {
 
     let acc = Account::new(auth);
     acc.listen();
-    // let a = Arc::new(RefCell::new("qwe".to_owned()));
-    // let q = a.clone();
-    // (*q).borrow_mut().push('q');
-    // println!("{}", (*a.borrow()));
-    // let h = spawn(move || {
-        // Arc::get_mut(&mut q).unwrap().push('q');
-        // println!("{}", q);
-    // });
-    // h.join();
-    // print!("{}", a);
-
-    
-    // let mut client = ImapClient::new(&auth);
-    // client.login(&auth);
-    // let folders = client.get_folders();
-    // for item in &folders {
-        // println!("{}", item.name);
-    // }
-
-    // let folder = &folders[5];
-    // let mailbox = client.exam(&folder);
-    // println!("{} has {} messages", folder.name, mailbox);
-    // save(&mailbox);
-    // let status = client.folder_status(folder, &vec![StatusItem::Messages, StatusItem::Recent, StatusItem::Unseen]);
-    // println!("");
-    // for item in &status {
-        // print!("{}", item);
-    // }
-    // client.logout();
 }
