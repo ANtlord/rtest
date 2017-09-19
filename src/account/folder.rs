@@ -29,10 +29,26 @@ impl FolderStatus {
     pub fn new() -> Self {
         Self { messages: 0, recent: 0, unseen: 0 }
     }
-    pub fn update(&mut self, messages: u64, recent: u64, unseen: u64) {
+
+    fn update(&mut self, messages: u64, recent: u64, unseen: u64) {
         self.messages = messages;
         self.recent = recent;
         self.unseen = unseen;
+    }
+
+    pub fn update_from_status_command(&mut self, response: &Vec<String>) {
+        println!("{:?}", response);
+        let status_data: Vec<&str> = response[0].split(" ").collect();
+        let mut vals = vec![];
+        let len = status_data.len();
+        for i in 3..len {
+            if i % 2 == 1 {
+                continue;
+            }
+            let val = str::replace(status_data[i].trim(), ")", "").parse::<u64>().unwrap();
+            vals.push(val);
+        }
+        self.update(vals[0], vals[1], vals[2]);
     }
 }
 
@@ -50,3 +66,22 @@ impl PartialEq for FolderStatus {
     }
 }
 impl Eq for FolderStatus {}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_from_status_command() {
+        let mut fs = FolderStatus::new();
+        let status_command_response = vec![
+            "* STATUS INBOX (MESSAGES 90 RECENT 34 UNSEEN 44)\r\n".to_owned(),
+            "a11 OK STATUS Completed.\r\n".to_owned(),
+        ];
+        fs.update_from_status_command(&status_command_response);
+        assert_eq!(fs.messages, 90);
+        assert_eq!(fs.recent, 34);
+        assert_eq!(fs.unseen, 44);
+    }
+}

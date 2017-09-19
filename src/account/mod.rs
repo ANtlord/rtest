@@ -72,6 +72,7 @@ impl Account {
         handle.join();
     }
 }
+
 impl AccountInner {
     fn new(auth: Auth) -> Self {
         let mut client = ImapClient::new(&auth);
@@ -104,17 +105,8 @@ impl AccountInner {
         let mut folder = self.folders.get_mut("INBOX").unwrap();
         let status_items = vec![StatusItem::Messages, StatusItem::Recent, StatusItem::Unseen];
         let status_message = self.client.folder_status(&folder.data, &status_items);
-        let status_data: Vec<&str> = status_message[0].split(" ").collect();
-        let mut vals = vec![];
-        let len = status_data.len();
-        for i in 3..len {
-            if i % 2 == 1 {
-                continue;
-            }
-            let val = str::replace(status_data[i].trim(), ")", "").parse::<u64>().unwrap();
-            vals.push(val);
-        }
-        folder.status.update(vals[0], vals[1], vals[2]);
+        println!("status_message: {:?}", status_message);
+        folder.status.update_from_status_command(&status_message);
     }
 
     pub fn check_new_messages(&mut self) -> Vec<Message> {
@@ -125,21 +117,5 @@ impl AccountInner {
         println!("I've got a message!");
         self.update_status();
         return result;
-    }
-}
-
-fn parse_status_item_data(data: &String) -> u64 {
-    let status_item_data = data.split(" ").collect::<Vec<&str>>();
-    println!("{:?}", status_item_data);
-    let status_item_value = status_item_data[1].trim().parse::<u64>().unwrap();
-    status_item_value
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_check_new_messages() {
     }
 }
