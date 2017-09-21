@@ -7,7 +7,7 @@ use auth::Auth;
 use iconv::Iconv;
 use std::ops::Deref;
 
-/// Wraps imap client. Gives ability to use it in several threads. Wraps raw responses into
+/// Wraps imap client and allows using it in several threads. Wraps raw responses into
 /// abstractions.
 pub struct ImapClient {
     imap_socket: Client<SslStream<TcpStream>>,
