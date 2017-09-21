@@ -78,13 +78,7 @@ impl AccountInner {
         let mut client = ImapClient::new(&auth);
         client.login(&auth);
         let folders_data = client.get_folders();
-        let mut mailboxes = Vec::new();
-        for folder_data in &folders_data {
-            match client.exam(&folder_data) {
-                Some(mb) => mailboxes.push(mb),
-                None => {}
-            }
-        }
+        let mailboxes: Vec<Mailbox> = folders_data.iter().filter_map(|x| client.exam(x)).collect();
         let data_zip = mailboxes.into_iter().zip(folders_data.into_iter());
         let folder_generator = data_zip.map(|(x, y)| (y.name.to_owned(), Folder::new(y, x)));
         let folders: HashMap<String, Folder> = folder_generator.collect();
