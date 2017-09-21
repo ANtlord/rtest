@@ -18,7 +18,6 @@ use std::env;
 use getopts::Options;
 use getopts::Matches;
 
-use data_mining::{ImapClient, StatusItem};
 use auth::Auth;
 use account::Account;
 

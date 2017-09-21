@@ -7,6 +7,8 @@ use auth::Auth;
 use iconv::Iconv;
 use std::ops::Deref;
 
+/// Wraps imap client. Gives ability to use it in several threads. Wraps raw responses into
+/// abstractions.
 pub struct ImapClient {
     imap_socket: Client<SslStream<TcpStream>>,
 }
@@ -24,12 +26,15 @@ impl ImapClient {
         self.imap_socket.login(&options.user, &options.pass).expect("cannot login");
     }
 
+    /// Returns list of folders.
     pub fn get_folders(&mut self) -> Vec<FolderData> {
         let folder_data = self.imap_socket.list("\"\"", "*").expect("cannot get folders");
         let folders = folder_data.into_iter().map(|x| FolderData::new(&x)).collect();
         folders
     }
 
+    /// Performs EXAMINE command applied to pointed folder. Returns folder represenation as
+    /// mailbox. Mailbox cab be None if there is no mailbox for pointed folder.
     pub fn exam(&mut self, folder: &FolderData) -> Option<Mailbox> {
         match self.imap_socket.examine(&folder.raw_name) {
             Ok(mb) => { return Some(mb) },
@@ -41,9 +46,6 @@ impl ImapClient {
                 _ => { panic!("unknown error."); }
             }
         };
-        // self.imap_socket.examine(&folder.raw_name).expect(
-            // &format!("cannot select folder {} {}", &folder.name, &folder.raw_name)
-        // )
     }
 
     pub fn select(&mut self, folder: &FolderData) -> Mailbox {
@@ -56,6 +58,14 @@ impl ImapClient {
         let item_str = format!("({})", arguments.join(" "));
         let status = self.imap_socket.status(&folder.raw_name, &item_str).expect("cannot get status");
         status
+    }
+
+    /// Returns number set of new messages.
+    pub fn search_new_messages(&mut self) -> Vec<String> {
+        let command = format!("SEARCH NEW");
+        let response = self.imap_socket.run_command_and_read_response(&command).unwrap();
+        let numbers: Vec<&str> = response[0].trim().split(" ").collect();
+        numbers[ 2 .. ].iter().map(|x| x.to_string()).collect()
     }
 
     pub fn get_folder_content(&mut self, folder: &FolderData) -> Vec<String> {
@@ -81,7 +91,7 @@ pub enum StatusItem {
 
 impl StatusItem {
     fn to_string(&self) -> String {
-        use StatusItem::*;
+        use self::StatusItem::*;
         match self {
             &Messages => "MESSAGES".to_owned(),
             &Recent => "RECENT".to_owned(),

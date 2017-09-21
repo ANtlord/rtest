@@ -10,6 +10,7 @@ pub struct Folder {
     pub status: FolderStatus,
 }
 
+/// Provides folder metrics.
 impl Folder {
     pub fn new(data: FolderData, mailbox: Mailbox) -> Self {
         Self{ mailbox: mailbox, data: data, status: FolderStatus::new() }
@@ -75,6 +76,9 @@ mod tests {
     #[test]
     fn update_from_status_command() {
         let mut fs = FolderStatus::new();
+        assert_eq!(fs.messages, 0);
+        assert_eq!(fs.recent, 0);
+        assert_eq!(fs.unseen, 0);
         let status_command_response = vec![
             "* STATUS INBOX (MESSAGES 90 RECENT 34 UNSEEN 44)\r\n".to_owned(),
             "a11 OK STATUS Completed.\r\n".to_owned(),
