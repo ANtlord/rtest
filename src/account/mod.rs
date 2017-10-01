@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use imap::mailbox::Mailbox;
 
 use auth::Auth;
-use data_mining::{ImapClient, StatusItem};
+use data_mining::{ImapClient, StatusItem, FetchFlags};
 use self::folder::Folder;
 
 use std::thread::{sleep, spawn, /*JoinHandle*/};
@@ -14,6 +14,11 @@ use std::time::Duration;
 use std::sync::mpsc::channel;
 
 use std::cell::RefCell;
+
+use notify_rust::Notification;
+use notify_rust::NotificationHint as Hint;
+
+use mailparse::{parse_mail, MailHeaderMap};
 
 pub struct Account {
     inner: Arc<Mutex<AccountInner>>
@@ -105,11 +110,37 @@ impl AccountInner {
 
     pub fn check_new_messages(&mut self) -> Vec<Message> {
         let result = Vec::new();
-        if !self.is_new_messages_exist() {
-            return result;
+        // if !self.is_new_messages_exist() {
+            // return result;
+        // }
+        self.is_new_messages_exist();
+
+        let message_ids = self.client.search_new_messages();
+        let n = message_ids.len();
+        if n > 0 {
+            println!("{:?}", message_ids);
+            let id = &message_ids[0];
+            println!("showing message content with UID {}", id);
+            let res = self.client.get_folder_content(id, FetchFlags::Body);
+            let text = res[1..].join("");
+            let parsed_text = parse_mail(text.as_bytes()).unwrap();
+            println!("Subject: {}", parsed_text.headers.get_first_value("Subject").unwrap().unwrap());
+            println!("From: {}", parsed_text.headers.get_first_value("From").unwrap().unwrap());
+        } else {
+            panic!("there is no one new message.")
         }
-        println!("I've got a message!");
+
+        notify();
         self.update_status();
         return result;
     }
+}
+
+fn notify() {
+    Notification::new()
+        .summary("New email")
+        .appname("rtest")
+        .body("You have got a new email(s)")
+        .icon("note")
+        .show().unwrap();
 }

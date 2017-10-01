@@ -6,6 +6,8 @@ extern crate iconv;
 extern crate bson;
 extern crate serde;
 extern crate chrono;
+extern crate notify_rust;
+extern crate mailparse;
 
 mod data_mining;
 mod io;

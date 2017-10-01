@@ -33,8 +33,9 @@ impl ImapClient {
         folders
     }
 
-    /// Performs EXAMINE command applied to pointed folder. Returns folder represenation as
-    /// mailbox. Mailbox cab be None if there is no mailbox for pointed folder.
+    /// Performs EXAMINE command applied to pointed folder. Sets pointed folder as current.
+    /// Returns folder represenation as mailbox. Mailbox cab be None if there is no mailbox for
+    /// pointed folder.
     pub fn exam(&mut self, folder: &FolderData) -> Option<Mailbox> {
         match self.imap_socket.examine(&folder.raw_name) {
             Ok(mb) => { return Some(mb) },
@@ -48,9 +49,9 @@ impl ImapClient {
         };
     }
 
-    pub fn select(&mut self, folder: &FolderData) -> Mailbox {
+    pub fn select(&mut self, folder: &FolderData) -> Option<Mailbox> {
         let mailbox = self.imap_socket.select(&folder.raw_name).expect("cannot select folder");
-        mailbox
+        Some(mailbox)
     }
 
     pub fn folder_status(&mut self, folder: &FolderData, items: &Vec<StatusItem>) -> Vec<String> {
@@ -60,16 +61,16 @@ impl ImapClient {
         status
     }
 
-    /// Returns number set of new messages.
+    /// Returns number set of new messages in current folder.
     pub fn search_new_messages(&mut self) -> Vec<String> {
-        let command = format!("SEARCH NEW");
+        let command = format!("UID SEARCH NEW");
         let response = self.imap_socket.run_command_and_read_response(&command).unwrap();
         let numbers: Vec<&str> = response[0].trim().split(" ").collect();
         numbers[ 2 .. ].iter().map(|x| x.to_string()).collect()
     }
 
-    pub fn get_folder_content(&mut self, folder: &FolderData) -> Vec<String> {
-        match self.imap_socket.fetch("1:*", "(FLAGS)") {
+    pub fn get_folder_content(&mut self, uid_set: &str, flag: FetchFlags) -> Vec<String> {
+        match self.imap_socket.uid_fetch(uid_set, &flag.to_string()) {
             Ok(res) => res,
             Err(e) => { panic!("{}", e) }
         }
@@ -77,6 +78,20 @@ impl ImapClient {
 
     pub fn logout(&mut self) {
         self.imap_socket.logout().unwrap();
+    }
+}
+
+pub enum FetchFlags {
+    Body,
+}
+
+impl FetchFlags {
+    fn to_string(&self) -> String {
+        use self::FetchFlags::*;
+        use std::env;
+        match self {
+            &Body => format!("BODY[{}]", env::var("BODY").unwrap()),
+        }
     }
 }
 

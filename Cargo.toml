@@ -11,3 +11,5 @@ iconv = { git = 'https://github.com/y-stm/rust-iconv' }
 bson = "0.9"
 serde = "1.0"
 chrono = "0.4"
+notify-rust = "3"
+mailparse="*"
